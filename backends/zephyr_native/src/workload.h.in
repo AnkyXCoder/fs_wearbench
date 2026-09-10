@@ -1,0 +1,12 @@
+#ifndef WORKLOAD_H
+#define WORKLOAD_H
+
+#define WEAR_RECORD_SIZE @WEAR_RECORD_SIZE@
+#define WEAR_RECORD_COUNT @WEAR_RECORD_COUNT@
+
+/* Backend selection: one of these will be defined to 1 */
+#define WEAR_BACKEND_NVS @WEAR_BACKEND_NVS@
+#define WEAR_BACKEND_ZMS @WEAR_BACKEND_ZMS@
+#define WEAR_BACKEND_LITTLEFS @WEAR_BACKEND_LITTLEFS@
+
+#endif

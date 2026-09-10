@@ -13,3 +13,7 @@ dist/
 # Host runners
 backends/littlefs_host/wear_littlefs
 *.o
+
+# Zephyr build directories
+backends/zephyr_native/build_*
+backends/zephyr_native/build
