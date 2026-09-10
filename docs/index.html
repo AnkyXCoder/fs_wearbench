@@ -128,6 +128,12 @@
                 <option value="zephyr_littlefs">zephyr_littlefs</option>
             </select>
 
+            <label for="mode">Mode</label>
+            <select id="mode">
+                <option value="real" selected>real measurement</option>
+                <option value="emulated">python emulation (fast)</option>
+            </select>
+
             <label for="workloadName">Workload name</label>
             <input id="workloadName" type="text" value="128-byte sensor record every 10 seconds" />
 
@@ -210,6 +216,7 @@
 
     <script>
         const backend = document.getElementById('backend');
+        const mode = document.getElementById('mode');
         const flashSection = document.getElementById('flashSection');
         const generateBtn = document.getElementById('generateBtn');
         const downloadBtn = document.getElementById('downloadBtn');
@@ -247,7 +254,7 @@
                 block_cycles: Number(val('blockCycles'))
             } : undefined;
 
-            const obj = { backend: b };
+            const obj = { backend: b, mode: mode.value };
             if (flash) obj.flash = flash;
             obj.workload = workload;
             obj.endurance = endurance;
@@ -272,7 +279,12 @@
 
         function estimateTime() {
             const b = backend.value;
+            const m = mode.value;
             const count = Number(val('recordCount')) || 0;
+            if (m === 'emulated') {
+                const run = Math.max(0.01, count * 0.00001);
+                return `Estimated (emulated): ~${run.toFixed(2)} s — no build needed`;
+            }
             let build = 1;
             let run = 0.1;
             if (b === 'littlefs_host') {

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 from .diff import print_diff
+from .emulation import emulate
 from .report import print_report
 from . import __version__
 
@@ -162,20 +163,30 @@ def main() -> None:
 @main.command()
 @click.argument("workload", type=click.Path(exists=True, dir_okay=False, path_type=Path))
 @click.option("-o", "--output", type=click.Path(dir_okay=False, path_type=Path))
-def run(workload: Path, output: Path | None) -> None:
+@click.option("--mode", "mode", type=click.Choice(["real", "emulated"], case_sensitive=False),
+              default=None, help="Use real measurement or fast Python emulation.")
+def run(workload: Path, output: Path | None, mode: str | None) -> None:
     """Run a workload and emit a JSON report."""
     with workload.open() as f:
         doc = yaml.safe_load(f)
 
+    mode = (mode or doc.get("mode") or "real").lower()
     backend = doc.get("backend")
-    if backend == "littlefs_host":
-        exe = _build_littlefs_host()
-        report = _run_littlefs_host(doc, exe)
-    elif backend in ("nvs", "zms", "zephyr_littlefs"):
-        report = _run_zephyr(doc, backend)
-    else:
-        raise click.ClickException(f"Unsupported backend: {backend!r}")
 
+    if mode == "emulated":
+        report = emulate(doc)
+    elif mode == "real":
+        if backend == "littlefs_host":
+            exe = _build_littlefs_host()
+            report = _run_littlefs_host(doc, exe)
+        elif backend in ("nvs", "zms", "zephyr_littlefs"):
+            report = _run_zephyr(doc, backend)
+        else:
+            raise click.ClickException(f"Unsupported backend: {backend!r}")
+    else:
+        raise click.ClickException(f"Unsupported mode: {mode!r}")
+
+    report["mode"] = mode
     report["workload"] = doc.get("workload", {})
     report["endurance"] = doc.get("endurance", {})
 

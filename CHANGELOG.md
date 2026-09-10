@@ -21,3 +21,4 @@ All notable changes to `fs-wearbench` are documented in this file.
 - `pyproject.toml` and editable pip install support.
 - Static `docs/index.html` web configurator for GitHub Pages.
 - Rough build + run time estimate in the web configurator.
+- `mode: emulated` / `--mode emulated` for fast Python-side approximation.

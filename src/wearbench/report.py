@@ -46,9 +46,14 @@ def print_report(data: dict, file=None) -> None:
         if max_wear and effective_cycles else float("inf")
     )
 
+    mode = data.get("mode", "real")
     print("Flash Wear Report", file=file)
     print("=" * 60, file=file)
     print(f"Backend:          {data.get('backend', 'unknown')}", file=file)
+    if mode == "emulated":
+        print("Mode:             Python emulation (approximate)", file=file)
+    else:
+        print("Mode:             real measurement", file=file)
     print(f"Block size:       {config.get('block_size', 0)} bytes", file=file)
     print(f"Block count:      {config.get('block_count', 0)}", file=file)
     if config.get('cache_size'):

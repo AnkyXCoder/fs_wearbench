@@ -62,6 +62,18 @@ Render the report:
 fs-wearbench show-report report.json
 ```
 
+### Emulated mode
+
+Add `mode: emulated` to the workload (or pass `--mode emulated`) for a fast
+Python-side estimate instead of the real measurement. The report is marked
+`mode: emulated` and the numbers are approximate; use `mode: real` (the
+default) for real measurement.
+
+```yaml
+backend: littlefs_host
+mode: emulated
+```
+
 ## Compare two runs
 
 ```bash
