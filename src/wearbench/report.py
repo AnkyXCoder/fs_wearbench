@@ -9,6 +9,13 @@ def _safe_div(a: float, b: float) -> float:
     return a / b if b else float("inf")
 
 
+def _derate_for_temperature(p_e_cycles: int, temperature_c: float) -> int:
+    """Conservative rule of thumb: endurance halves every 10 C above 25 C."""
+    if temperature_c <= 25:
+        return p_e_cycles
+    return max(1, int(p_e_cycles * (0.5 ** ((temperature_c - 25) / 10.0))))
+
+
 def print_report(data: dict, file=None) -> None:
     config = data.get("config", {})
     metrics = data.get("metrics", {})
@@ -26,14 +33,17 @@ def print_report(data: dict, file=None) -> None:
     hottest = sorted(wear, key=lambda b: b["cycles"], reverse=True)[:5]
 
     p_e_cycles = endurance.get("p_e_cycles", 0)
+    temperature_c = endurance.get("temperature_c", 25)
     record_count = config.get("record_count", 0)
     record_interval_ms = workload.get("record_interval_ms", 0)
 
     # Runtime simulated by this workload, in years
-    run_time_years = (record_count * record_interval_ms) / (1000 * SECONDS_PER_YEAR)
+    run_time_years = (record_count * record_interval_ms) / \
+        (1000 * SECONDS_PER_YEAR)
+    effective_cycles = _derate_for_temperature(p_e_cycles, temperature_c)
     years_to_failure = (
-        _safe_div(p_e_cycles, max_wear) * run_time_years
-        if max_wear and p_e_cycles else float("inf")
+        _safe_div(effective_cycles, max_wear) * run_time_years
+        if max_wear and effective_cycles else float("inf")
     )
 
     print("Flash Wear Report", file=file)
@@ -47,7 +57,8 @@ def print_report(data: dict, file=None) -> None:
     print("Metrics", file=file)
     print("-" * 60, file=file)
     print(f"User data written:     {user_bytes:,} bytes", file=file)
-    print(f"Flash bytes read:      {metrics.get('readed_bytes', 0):,}", file=file)
+    print(
+        f"Flash bytes read:      {metrics.get('readed_bytes', 0):,}", file=file)
     print(f"Flash bytes programed: {proged:,}", file=file)
     print(f"Flash bytes erased:    {erased:,}", file=file)
     print(f"Write amplification:   {write_amp:.2f}x", file=file)
@@ -63,8 +74,11 @@ def print_report(data: dict, file=None) -> None:
     print("Endurance", file=file)
     print("-" * 60, file=file)
     print(f"Datasheet P/E cycles: {p_e_cycles:,}", file=file)
-    print(f"Temperature:          {endurance.get('temperature_c', 'n/a')} C", file=file)
-    print(f"Simulated runtime:    {run_time_years * 365.25 * 24:,.2f} hours", file=file)
+    print(f"Effective P/E cycles: {effective_cycles:,}", file=file)
+    print(
+        f"Temperature:          {temperature_c} C", file=file)
+    print(
+        f"Simulated runtime:    {run_time_years * 365.25 * 24:,.2f} hours", file=file)
     if years_to_failure == float("inf"):
         print(f"Estimated lifetime:   no measurable wear", file=file)
     else:
