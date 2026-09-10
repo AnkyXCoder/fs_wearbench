@@ -99,6 +99,13 @@ fs-wearbench/
 for every 10 °C above 25 °C. This is a deliberately simple model; the report
 always prints the temperature assumption so users can sanity-check the number.
 
+## Web configurator
+
+A static HTML configurator lives in `docs/index.html`. It can be hosted on
+GitHub Pages by pointing the Pages source to the `docs` folder on the main
+branch. Use the form to select a backend, tune the workload, and download a
+ready-to-run YAML file.
+
 ## License
 
 Apache-2.0

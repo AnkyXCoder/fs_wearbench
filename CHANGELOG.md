@@ -19,3 +19,4 @@ All notable changes to `fs-wearbench` are documented in this file.
   above 25 °C).
 - Example workloads for littlefs_host, NVS, ZMS and Zephyr LittleFS.
 - `pyproject.toml` and editable pip install support.
+- Static `docs/index.html` web configurator for GitHub Pages.
