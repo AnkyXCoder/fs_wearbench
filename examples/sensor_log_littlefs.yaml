@@ -1,0 +1,17 @@
+backend: littlefs_host
+flash:
+  block_size: 4096
+  block_count: 256
+  read_size: 16
+  prog_size: 16
+  cache_size: 64
+  lookahead_size: 16
+  block_cycles: 512
+workload:
+  name: "128-byte sensor record every 10 seconds"
+  record_size: 128
+  record_count: 1000
+  record_interval_ms: 10000
+endurance:
+  p_e_cycles: 100000
+  temperature_c: 25

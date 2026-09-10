@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+.venv/
+
+# Build artifacts
+build/
+dist/
+
+# Host runners
+backends/littlefs_host/wear_littlefs
+*.o
