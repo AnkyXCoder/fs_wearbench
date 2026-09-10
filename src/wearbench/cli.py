@@ -1,6 +1,7 @@
 """Command-line interface for wearbench."""
 
 from __future__ import annotations
+from .diff import print_diff
 from .report import print_report
 from . import __version__
 
@@ -170,3 +171,19 @@ def show_report(report: Path, output) -> None:
     with report.open() as f:
         data = json.load(f)
     print_report(data, file=output)
+
+
+@main.command("diff")
+@click.argument("baseline", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.argument("new", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("-t", "--threshold", default=5.0, type=float,
+              help="Percent change that counts as a regression.")
+@click.pass_context
+def diff_command(ctx, baseline: Path, new: Path, threshold: float) -> None:
+    """Compare two JSON reports and fail if amplification regresses."""
+    with baseline.open() as f:
+        a = json.load(f)
+    with new.open() as f:
+        b = json.load(f)
+    rc = print_diff(a, b, threshold=threshold)
+    ctx.exit(rc)
