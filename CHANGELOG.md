@@ -1,16 +1,16 @@
 # Changelog
 
-All notable changes to `wearbench` are documented in this file.
+All notable changes to `fs-wearbench` are documented in this file.
 
 ## [0.1.0] - WIP
 
 ### Added
 
 - Host LittleFS runner using `lfs_emubd` for exact per-block wear counts.
-- `wearbench run` to execute a declarative YAML workload and emit a JSON
+- `fs-wearbench run` to execute a declarative YAML workload and emit a JSON
   report.
-- `wearbench show-report` to render a JSON report as a human-readable table.
-- `wearbench diff` to compare two JSON reports and exit non-zero on regression.
+- `fs-wearbench show-report` to render a JSON report as a human-readable table.
+- `fs-wearbench diff` to compare two JSON reports and exit non-zero on regression.
 - Zephyr `native_sim` backend for NVS, with flash-simulator callbacks for
   per-sector erase tracking.
 - Zephyr `native_sim` backend for ZMS.

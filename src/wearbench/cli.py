@@ -1,4 +1,4 @@
-"""Command-line interface for wearbench."""
+"""Command-line interface for fs-wearbench."""
 
 from __future__ import annotations
 from .diff import print_diff
