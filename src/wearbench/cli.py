@@ -164,13 +164,13 @@ def main() -> None:
 @click.argument("workload", type=click.Path(exists=True, dir_okay=False, path_type=Path))
 @click.option("-o", "--output", type=click.Path(dir_okay=False, path_type=Path))
 @click.option("--mode", "mode", type=click.Choice(["real", "emulated"], case_sensitive=False),
-              default=None, help="Use real measurement or fast Python emulation.")
+              default=None, help="Use real measurement or fast Python emulation (default: emulated).")
 def run(workload: Path, output: Path | None, mode: str | None) -> None:
     """Run a workload and emit a JSON report."""
     with workload.open() as f:
         doc = yaml.safe_load(f)
 
-    mode = (mode or doc.get("mode") or "real").lower()
+    mode = (mode or doc.get("mode") or "emulated").lower()
     backend = doc.get("backend")
 
     if mode == "emulated":

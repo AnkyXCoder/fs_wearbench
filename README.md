@@ -64,14 +64,14 @@ fs-wearbench show-report report.json
 
 ### Emulated mode
 
-Add `mode: emulated` to the workload (or pass `--mode emulated`) for a fast
-Python-side estimate instead of the real measurement. The report is marked
-`mode: emulated` and the numbers are approximate; use `mode: real` (the
-default) for real measurement.
+`mode: emulated` is the default; `fs-wearbench` runs a fast Python-side
+estimate instead of the real measurement. The report is marked
+`mode: emulated` and the numbers are approximate. Use `--mode real` (or
+`mode: real`) to run the real LittleFS/NVS/ZMS code.
 
 ```yaml
 backend: littlefs_host
-mode: emulated
+mode: real
 ```
 
 ## Compare two runs
