@@ -85,3 +85,48 @@ def print_report(data: dict, file=None) -> None:
         print(f"Estimated lifetime:   no measurable wear", file=file)
     else:
         print(f"Estimated lifetime:   {years_to_failure:.2f} years", file=file)
+
+    print(file=file)
+    print("Summary", file=file)
+    print("-" * 60, file=file)
+    record_size = config.get("record_size", 0)
+    interval_s = record_interval_ms / 1000.0 if record_interval_ms else 0.0
+    user_rate = record_size / interval_s if interval_s else 0.0
+    flash_per_record = proged / record_count if record_count else 0.0
+    erase_per_record = erased / record_count if record_count else 0.0
+
+    print(
+        f"The workload writes {user_bytes:,} B of user data across "
+        f"{record_count} records ({user_rate:.2f} B/s).",
+        file=file,
+    )
+    print(
+        f"Flash traffic per record: {flash_per_record:.2f} B programmed, "
+        f"{erase_per_record:.2f} B erased.",
+        file=file,
+    )
+    if write_amp > 1.0:
+        print(
+            f"Write amplification {write_amp:.2f}x means metadata/GC overhead "
+            f"adds {write_amp - 1:.1%} to user writes.",
+            file=file,
+        )
+    if erase_amp > 1.0:
+        print(
+            f"Erase amplification {erase_amp:.2f}x means block reuse adds "
+            f"{erase_amp - 1:.1%} to user erases.",
+            file=file,
+        )
+    if max_wear > 1:
+        print(
+            f"Max {max_wear} erase cycles on a block indicates wear hotspots.",
+            file=file,
+        )
+    else:
+        print("Wear is distributed evenly; no block was erased more than once.", file=file)
+    if years_to_failure != float("inf"):
+        print(
+            f"Estimated lifetime is {years_to_failure:.2f} years at this cadence, "
+            f"assuming {effective_cycles:,} effective P/E cycles.",
+            file=file,
+        )

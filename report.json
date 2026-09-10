@@ -1,0 +1,175 @@
+{
+  "backend": "zms",
+  "config": {
+    "record_size": 128,
+    "record_count": 1000,
+    "block_size": 4096,
+    "block_count": 64
+  },
+  "metrics": {
+    "user_bytes": 128000,
+    "readed_bytes": 161184,
+    "proged_bytes": 146272,
+    "erased_bytes": 151552
+  },
+  "per_block_wear": [
+    {
+      "block": 0,
+      "cycles": 1
+    },
+    {
+      "block": 1,
+      "cycles": 1
+    },
+    {
+      "block": 2,
+      "cycles": 1
+    },
+    {
+      "block": 3,
+      "cycles": 1
+    },
+    {
+      "block": 4,
+      "cycles": 1
+    },
+    {
+      "block": 5,
+      "cycles": 1
+    },
+    {
+      "block": 6,
+      "cycles": 1
+    },
+    {
+      "block": 7,
+      "cycles": 1
+    },
+    {
+      "block": 8,
+      "cycles": 1
+    },
+    {
+      "block": 9,
+      "cycles": 1
+    },
+    {
+      "block": 10,
+      "cycles": 1
+    },
+    {
+      "block": 11,
+      "cycles": 1
+    },
+    {
+      "block": 12,
+      "cycles": 1
+    },
+    {
+      "block": 13,
+      "cycles": 1
+    },
+    {
+      "block": 14,
+      "cycles": 1
+    },
+    {
+      "block": 15,
+      "cycles": 1
+    },
+    {
+      "block": 16,
+      "cycles": 1
+    },
+    {
+      "block": 17,
+      "cycles": 1
+    },
+    {
+      "block": 18,
+      "cycles": 1
+    },
+    {
+      "block": 19,
+      "cycles": 1
+    },
+    {
+      "block": 20,
+      "cycles": 1
+    },
+    {
+      "block": 21,
+      "cycles": 1
+    },
+    {
+      "block": 22,
+      "cycles": 1
+    },
+    {
+      "block": 23,
+      "cycles": 1
+    },
+    {
+      "block": 24,
+      "cycles": 1
+    },
+    {
+      "block": 25,
+      "cycles": 1
+    },
+    {
+      "block": 26,
+      "cycles": 1
+    },
+    {
+      "block": 27,
+      "cycles": 1
+    },
+    {
+      "block": 28,
+      "cycles": 1
+    },
+    {
+      "block": 29,
+      "cycles": 1
+    },
+    {
+      "block": 30,
+      "cycles": 1
+    },
+    {
+      "block": 31,
+      "cycles": 1
+    },
+    {
+      "block": 32,
+      "cycles": 1
+    },
+    {
+      "block": 33,
+      "cycles": 1
+    },
+    {
+      "block": 34,
+      "cycles": 1
+    },
+    {
+      "block": 35,
+      "cycles": 1
+    },
+    {
+      "block": 36,
+      "cycles": 1
+    }
+  ],
+  "workload": {
+    "name": "128-byte ZMS state write every 10 seconds",
+    "record_size": 128,
+    "record_count": 1000,
+    "record_interval_ms": 10000
+  },
+  "endurance": {
+    "p_e_cycles": 100000,
+    "temperature_c": 25
+  }
+}
