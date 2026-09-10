@@ -5,22 +5,22 @@ created: 2026-09-10T15:35:58Z
 ---
 # Flash Wear Bench — Automated Wear-Leveling & Endurance Estimator
 
-Build a Python CLI (`wearbench`) that drives real storage implementations (LittleFS via `lfs_emubd`, Zephyr NVS/ZMS via `native_sim`/flash-simulator) with declarative workloads, measures per-block erase cycles and write amplification, and produces an endurance report with years-in-field, hotspot sectors, and tuning recommendations; start as a standalone GitHub repo and propose upstream once mature.
+Build a Python CLI (`fs-wearbench`) that drives real storage implementations (LittleFS via `lfs_emubd`, Zephyr NVS/ZMS via `native_sim`/flash-simulator) with declarative workloads, measures per-block erase cycles and write amplification, and produces an endurance report with years-in-field, hotspot sectors, and tuning recommendations; start as a standalone GitHub repo and propose upstream once mature.
 
 ## 1. Prior-art check (brutally honest)
 
 ### What already exists
 
-| Source | What it does | Why it is not the product we want |
-|---|---|---|
-| [LittleFS online demo](http://littlefs.geky.net/demo.html) | Visual JavaScript simulator of LittleFS wear | Still on LittleFS v1 (outdated); not v2 dynamic wear-leveling; browser-only, no CLI, no years-in-field or datasheet mapping. |
-| LittleFS `lfs_emubd` (`bd/lfs_emubd.h` / `bd/lfs_emubd.c`) | Emulated block device with per-block wear tracking, bad-block and power-loss simulation | It is an internal test/building block, not a user-facing CLI or CI tool. |
-| LittleFS `tests/test_exhaustion.toml` and `runners/bench_runner.c` | Run-to-exhaustion and benchmark harnesses for LittleFS | Developer test infrastructure, not a declarative workload tool, not tied to real customer workloads, and no endurance report. |
-| [littlefs-benchmarks](https://github.com/littlefs-project/littlefs-benchmarks) | CSV-based LittleFS benchmarks across v1/v2/v3, NOR/NAND/eMMC geometries, with plots | LittleFS-only; no Zephyr NVS/ZMS; no declarative workload DSL; no hotspot/years/CI regression output. |
-| [2ck/flash-playground](https://github.com/2ck/flash-playground) | Academic C++ NOR flash FS simulator (LittleFS/SPIFFS/NF2FS/YAFFS2) | Zero maintenance/adoption; not Zephyr; no NVS/ZMS; no CI-friendly report. |
-| Zephyr NVS docs | [Hand-written lifetime formula](https://docs.zephyrproject.org/latest/services/storage/nvs/nvs.html) | Formula only; no simulator, no tool, no per-sector hotspots. |
-| Zephyr ZMS docs | [Interactive HTML calculators](https://docs.zephyrproject.org/latest/services/storage/zms/zms.html) for available space and device lifetime | Doc-only; formula-based; no CLI, no CI, no real code execution, no LittleFS/NVS, no regression diff. |
-| Zephyr flash simulator (`drivers/flash/flash_simulator.c`) | RAM-based flash with per-page erase stats, callbacks, and timing | Used in tests only; stats limited to the first `FLASH_SIMULATOR_STAT_PAGE_COUNT` pages unless you use callbacks. |
+| Source                                                                         | What it does                                                                                                                                | Why it is not the product we want                                                                                             |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| [LittleFS online demo](http://littlefs.geky.net/demo.html)                     | Visual JavaScript simulator of LittleFS wear                                                                                                | Still on LittleFS v1 (outdated); not v2 dynamic wear-leveling; browser-only, no CLI, no years-in-field or datasheet mapping.  |
+| LittleFS `lfs_emubd` (`bd/lfs_emubd.h` / `bd/lfs_emubd.c`)                     | Emulated block device with per-block wear tracking, bad-block and power-loss simulation                                                     | It is an internal test/building block, not a user-facing CLI or CI tool.                                                      |
+| LittleFS `tests/test_exhaustion.toml` and `runners/bench_runner.c`             | Run-to-exhaustion and benchmark harnesses for LittleFS                                                                                      | Developer test infrastructure, not a declarative workload tool, not tied to real customer workloads, and no endurance report. |
+| [littlefs-benchmarks](https://github.com/littlefs-project/littlefs-benchmarks) | CSV-based LittleFS benchmarks across v1/v2/v3, NOR/NAND/eMMC geometries, with plots                                                         | LittleFS-only; no Zephyr NVS/ZMS; no declarative workload DSL; no hotspot/years/CI regression output.                         |
+| [2ck/flash-playground](https://github.com/2ck/flash-playground)                | Academic C++ NOR flash FS simulator (LittleFS/SPIFFS/NF2FS/YAFFS2)                                                                          | Zero maintenance/adoption; not Zephyr; no NVS/ZMS; no CI-friendly report.                                                     |
+| Zephyr NVS docs                                                                | [Hand-written lifetime formula](https://docs.zephyrproject.org/latest/services/storage/nvs/nvs.html)                                        | Formula only; no simulator, no tool, no per-sector hotspots.                                                                  |
+| Zephyr ZMS docs                                                                | [Interactive HTML calculators](https://docs.zephyrproject.org/latest/services/storage/zms/zms.html) for available space and device lifetime | Doc-only; formula-based; no CLI, no CI, no real code execution, no LittleFS/NVS, no regression diff.                          |
+| Zephyr flash simulator (`drivers/flash/flash_simulator.c`)                     | RAM-based flash with per-page erase stats, callbacks, and timing                                                                            | Used in tests only; stats limited to the first `FLASH_SIMULATOR_STAT_PAGE_COUNT` pages unless you use callbacks.              |
 
 ### Conclusion on the gap
 
@@ -35,7 +35,7 @@ That gap is real and worth building. A pure hand-rolled model would be wrong and
 
 ## 2. Reframed product
 
-**`wearbench`** — a flash endurance profiler for Zephyr-flavored embedded storage.
+**`fs-wearbench`** — a flash endurance profiler for Zephyr-flavored embedded storage.
 
 Core principle: *measure first, model second*. We do not re-implement LittleFS/NVS/ZMS behavior in a spreadsheet; we compile and execute the real libraries on a host simulator and report what they actually did.
 
@@ -46,9 +46,9 @@ Core principle: *measure first, model second*. We do not re-implement LittleFS/N
   1. **Host LittleFS runner** using `lfs_emubd` for fast, exact per-block wear counts.
   2. **Zephyr `native_sim` runner** for NVS and ZMS (and optionally Zephyr's `FS_LITTLEFS` layer) using the flash simulator with custom callbacks for per-sector erase tracking.
 - CLI commands:
-  - `wearbench run workload.yaml` → JSON report.
-  - `wearbench report report.json` → human-readable Markdown/terminal table.
-  - `wearbench diff baseline.json new.json` → amplification/lifetime delta, non-zero exit for CI thresholds.
+  - `fs-wearbench run workload.yaml` → JSON report.
+  - `fs-wearbench report report.json` → human-readable Markdown/terminal table.
+  - `fs-wearbench diff baseline.json new.json` → amplification/lifetime delta, non-zero exit for CI thresholds.
 - Report contents:
   - total read / program / erase bytes
   - write and erase amplification factors
@@ -71,7 +71,7 @@ Core principle: *measure first, model second*. We do not re-implement LittleFS/N
 
 - Zephyr's own tooling (`west`, `twister`, build scripts) is Python.
 - YAML/JSON parsing, `cmake`/West orchestration, CI integration, and report generation are natural in Python.
-- Contributors can `pip install wearbench`; no Rust toolchain required to use the tool.
+- Contributors can `pip install fs-wearbench`; no Rust toolchain required to use the tool.
 
 **Measurement runners: C**, built from real upstream sources.
 
@@ -84,15 +84,15 @@ Core principle: *measure first, model second*. We do not re-implement LittleFS/N
 
 ## 4. Milestones (each demoable)
 
-| # | Milestone | Exit criterion |
-|---|---|---|
-| M1 | Host LittleFS harness | `./wearbench run examples/sensor_log_littlefs.yaml` builds the `lfs_emubd` runner and emits a JSON report with per-block wear and read/prog/erase bytes. |
-| M2 | Python CLI + report | `wearbench report` prints a Markdown table: years-to-failure, write amplification, hottest blocks, and a simple tuning hint. |
-| M3 | Zephyr `native_sim` NVS backend | `wearbench run examples/sensor_log_nvs.yaml` builds a `native_sim` app, runs it, and emits the same JSON schema as the host runner. |
-| M4 | ZMS and Zephyr LittleFS backends | `wearbench run` works for `backend: zms` and `backend: zephyr_littlefs`; a matrix command compares all three on one workload. |
-| M5 | CI regression (`wearbench diff`) | `wearbench diff baseline.json pr.json` flags >5% write/erase amplification increase and exits non-zero; GitHub Actions job demonstrates it. |
-| M6 | Datasheet/temperature model and sweep | Add optional temperature derating, P/E cycle config, and a `wearbench sweep --param sector_count` command that recommends a config for a target lifetime. |
-| M7 | Packaging and upstream proposal | `pip install wearbench`; draft a `samples/storage/wear_bench` PR to Zephyr; optional `west` extension registered. |
+| #   | Milestone                             | Exit criterion                                                                                                                                               |
+| --- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| M1  | Host LittleFS harness                 | `./fs-wearbench run examples/sensor_log_littlefs.yaml` builds the `lfs_emubd` runner and emits a JSON report with per-block wear and read/prog/erase bytes.  |
+| M2  | Python CLI + report                   | `fs-wearbench report` prints a Markdown table: years-to-failure, write amplification, hottest blocks, and a simple tuning hint.                              |
+| M3  | Zephyr `native_sim` NVS backend       | `fs-wearbench run examples/sensor_log_nvs.yaml` builds a `native_sim` app, runs it, and emits the same JSON schema as the host runner.                       |
+| M4  | ZMS and Zephyr LittleFS backends      | `fs-wearbench run` works for `backend: zms` and `backend: zephyr_littlefs`; a matrix command compares all three on one workload.                             |
+| M5  | CI regression (`fs-wearbench diff`)   | `fs-wearbench diff baseline.json pr.json` flags >5% write/erase amplification increase and exits non-zero; GitHub Actions job demonstrates it.               |
+| M6  | Datasheet/temperature model and sweep | Add optional temperature derating, P/E cycle config, and a `fs-wearbench sweep --param sector_count` command that recommends a config for a target lifetime. |
+| M7  | Packaging and upstream proposal       | `pip install fs-wearbench`; draft a `samples/storage/wear_bench` PR to Zephyr; optional `west` extension registered.                                         |
 
 If schedule slips, **M1–M4 is the public v1.0**; M5–M7 are v1.x.
 
@@ -115,28 +115,28 @@ If schedule slips, **M1–M4 is the public v1.0**; M5–M7 are v1.x.
 
 ## 7. Risks and mitigations
 
-| Risk | Mitigation |
-|---|---|
+| Risk                                                                          | Mitigation                                                                                                                                 |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | `lfs_emubd` is test-only and not exposed through Zephyr's `FS_LITTLEFS` layer | Provide two backends; document that the host emubd runner gives exact per-block wear, while the Zephyr FS runner uses the flash simulator. |
-| Big flash sizes in `lfs_emubd` use a lot of host RAM | Default to small, representative geometries and extrapolate; support `scale_factor` in the workload. |
-| YAML → C workload generation slows iteration | Cache build directories; reuse runner binaries when only workload data changes; support fast host backend for daily use. |
-| NVS/ZMS and file-system semantics differ (kv vs paths) | Backend-specific YAML schema; common JSON report schema hides the differences. |
-| Flash simulator per-page stats are capped at 256 pages | Use `flash_simulator_set_callbacks` to count all erase cycles ourselves. |
-| Temperature/retention model is a simplification | Expose all assumptions; never claim exact field lifetime; use conservative derating factors. |
-| Upstream may prefer a doc calculator over a CLI | Start standalone; demonstrate CI value before proposing upstream. |
+| Big flash sizes in `lfs_emubd` use a lot of host RAM                          | Default to small, representative geometries and extrapolate; support `scale_factor` in the workload.                                       |
+| YAML → C workload generation slows iteration                                  | Cache build directories; reuse runner binaries when only workload data changes; support fast host backend for daily use.                   |
+| NVS/ZMS and file-system semantics differ (kv vs paths)                        | Backend-specific YAML schema; common JSON report schema hides the differences.                                                             |
+| Flash simulator per-page stats are capped at 256 pages                        | Use `flash_simulator_set_callbacks` to count all erase cycles ourselves.                                                                   |
+| Temperature/retention model is a simplification                               | Expose all assumptions; never claim exact field lifetime; use conservative derating factors.                                               |
+| Upstream may prefer a doc calculator over a CLI                               | Start standalone; demonstrate CI value before proposing upstream.                                                                          |
 
 ## 8. Open decisions for you
 
 1. **v1 backend ordering.** Recommendation: M1 host LittleFS for a fast demo, then M2–M4 `native_sim` for NVS/ZMS. If you want all three in the first binary, M1 can be skipped in favor of a `native_sim` LittleFS backend.
 2. **CLI language.** Recommendation: Python 3.11+. If you strongly prefer Rust for the CLI, we can keep the C runners and write a Rust driver, but it will be slower to integrate with `west`/CMake.
 3. **Output artifacts in v1.** JSON + Markdown/terminal. HTML or web dashboard as v2.
-4. **Packaging path.** Standalone `pip install wearbench` first, then a `west` extension and upstream sample.
+4. **Packaging path.** Standalone `pip install fs-wearbench` first, then a `west` extension and upstream sample.
 
 ## 9. References
 
-- LittleFS emubd API (per-block wear): <ref_file file="/home/ankit/Workspaces/fwProjects/iNode/os/modules/fs/littlefs/bd/lfs_emubd.h" />
-- Zephyr flash simulator stats/callbacks: <ref_file file="/home/ankit/Workspaces/fwProjects/iNode/os/zephyr/drivers/flash/flash_simulator.c" />
-- Zephyr flash simulator Kconfig: <ref_file file="/home/ankit/Workspaces/fwProjects/iNode/os/zephyr/drivers/flash/Kconfig.simulator" />
+- LittleFS emubd API (per-block wear): `lfs_emubd.h` in the LittleFS repo
+- Zephyr flash simulator stats/callbacks: `drivers/flash/flash_simulator.c`
+- Zephyr flash simulator Kconfig: `drivers/flash/Kconfig.simulator`
 - Zephyr NVS lifetime docs: https://docs.zephyrproject.org/latest/services/storage/nvs/nvs.html
 - Zephyr ZMS interactive calculators: https://docs.zephyrproject.org/latest/services/storage/zms/zms.html
 - littlefs-benchmarks: https://github.com/littlefs-project/littlefs-benchmarks

@@ -7,6 +7,7 @@ from . import __version__
 
 import json
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -66,18 +67,40 @@ def _run_littlefs_host(workload: dict, exe: Path) -> dict:
     return json.loads(result.stdout)
 
 
+_ZEPHYR_BACKEND_NAMES = {
+    "nvs": "NVS",
+    "zms": "ZMS",
+    "zephyr_littlefs": "LITTLEFS",
+}
+
+
+def _pristine_if_stale(build_dir: Path, app_dir: Path) -> None:
+    cache = build_dir / "CMakeCache.txt"
+    if not cache.exists():
+        return
+    expected = f"CMAKE_HOME_DIRECTORY:STATIC={app_dir}"
+    text = cache.read_text(errors="replace")
+    if expected not in text:
+        shutil.rmtree(build_dir, ignore_errors=True)
+
+
 def _zephyr_app_dir() -> Path:
     return Path(__file__).resolve().parents[2] / "backends" / "zephyr_native"
 
 
 def _build_zephyr(workload: dict, backend: str) -> Path:
+    if backend not in _ZEPHYR_BACKEND_NAMES:
+        raise click.ClickException(f"Unknown Zephyr backend: {backend!r}")
     app_dir = _zephyr_app_dir()
     w = workload["workload"]
     build_dir = app_dir / f"build_{backend}"
     record_size = w["record_size"]
     record_count = w["record_count"]
+    cmake_backend = _ZEPHYR_BACKEND_NAMES[backend]
 
-    click.echo(f"Building Zephyr {backend.upper()} runner in {build_dir} ...")
+    _pristine_if_stale(build_dir, app_dir)
+
+    click.echo(f"Building Zephyr {cmake_backend} runner in {build_dir} ...")
     build_cmd = [
         str(_WEST),
         "build",
@@ -91,7 +114,7 @@ def _build_zephyr(workload: dict, backend: str) -> Path:
         "--",
         f"-DWEAR_RECORD_SIZE={record_size}",
         f"-DWEAR_RECORD_COUNT={record_count}",
-        f"-DWEAR_BACKEND={backend.upper()}",
+        f"-DWEAR_BACKEND={cmake_backend}",
     ]
     result = subprocess.run(
         build_cmd,

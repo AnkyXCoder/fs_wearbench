@@ -51,8 +51,10 @@ def print_report(data: dict, file=None) -> None:
     print(f"Backend:          {data.get('backend', 'unknown')}", file=file)
     print(f"Block size:       {config.get('block_size', 0)} bytes", file=file)
     print(f"Block count:      {config.get('block_count', 0)}", file=file)
-    print(f"Cache size:       {config.get('cache_size', 0)} bytes", file=file)
-    print(f"LittleFS block_cycles: {config.get('block_cycles', 0)}", file=file)
+    if config.get('cache_size'):
+        print(f"Cache size:       {config['cache_size']} bytes", file=file)
+    if config.get('block_cycles'):
+        print(f"LittleFS block_cycles: {config['block_cycles']}", file=file)
     print(file=file)
     print("Metrics", file=file)
     print("-" * 60, file=file)
