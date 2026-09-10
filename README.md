@@ -104,7 +104,8 @@ always prints the temperature assumption so users can sanity-check the number.
 A static HTML configurator lives in `docs/index.html`. It can be hosted on
 GitHub Pages by pointing the Pages source to the `docs` folder on the main
 branch. Use the form to select a backend, tune the workload, and download a
-ready-to-run YAML file.
+ready-to-run YAML file. It also shows a rough estimated build + run time
+based on the selected backend and record count.
 
 ## License
 

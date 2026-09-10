@@ -20,3 +20,4 @@ All notable changes to `fs-wearbench` are documented in this file.
 - Example workloads for littlefs_host, NVS, ZMS and Zephyr LittleFS.
 - `pyproject.toml` and editable pip install support.
 - Static `docs/index.html` web configurator for GitHub Pages.
+- Rough build + run time estimate in the web configurator.

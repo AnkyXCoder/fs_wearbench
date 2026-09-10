@@ -1,269 +1,318 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>fs-wearbench web configurator</title>
-  <style>
-    :root {
-      --bg: #0d1117;
-      --fg: #c9d1d9;
-      --muted: #8b949e;
-      --accent: #58a6ff;
-      --border: #30363d;
-      --card: #161b22;
-    }
-    * { box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-      background: var(--bg);
-      color: var(--fg);
-      line-height: 1.5;
-      margin: 0;
-      padding: 2rem 1rem;
-    }
-    main {
-      max-width: 720px;
-      margin: 0 auto;
-    }
-    h1 { margin-top: 0; }
-    p.muted { color: var(--muted); }
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1.25rem;
-      margin-bottom: 1rem;
-    }
-    label {
-      display: block;
-      margin: 0.75rem 0 0.25rem;
-      font-weight: 500;
-    }
-    input, select, textarea {
-      width: 100%;
-      padding: 0.5rem;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      background: var(--bg);
-      color: var(--fg);
-      font: inherit;
-    }
-    .row {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 0.75rem;
-    }
-    .row > div {
-      min-width: 0;
-    }
-    button {
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      padding: 0.6rem 1.2rem;
-      font: inherit;
-      cursor: pointer;
-      margin-right: 0.5rem;
-    }
-    button.secondary {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--fg);
-    }
-    .actions {
-      margin-top: 1rem;
-    }
-    pre {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 1rem;
-      overflow-x: auto;
-    }
-    .note {
-      color: var(--muted);
-      font-size: 0.9rem;
-      margin-top: 0.5rem;
-    }
-  </style>
-</head>
-<body>
-  <main>
-    <h1>fs-wearbench web configurator</h1>
-    <p class="muted">Build a workload, then run it locally with the fs-wearbench CLI.</p>
-
-    <div class="card">
-      <label for="backend">Backend</label>
-      <select id="backend">
-        <option value="littlefs_host" selected>littlefs_host</option>
-        <option value="nvs">nvs</option>
-        <option value="zms">zms</option>
-        <option value="zephyr_littlefs">zephyr_littlefs</option>
-      </select>
-
-      <label for="workloadName">Workload name</label>
-      <input id="workloadName" type="text" value="128-byte sensor record every 10 seconds" />
-
-      <div class="row">
-        <div>
-          <label for="recordSize">Record size (bytes)</label>
-          <input id="recordSize" type="number" value="128" />
-        </div>
-        <div>
-          <label for="recordCount">Record count</label>
-          <input id="recordCount" type="number" value="1000" />
-        </div>
-        <div>
-          <label for="recordInterval">Interval (ms)</label>
-          <input id="recordInterval" type="number" value="10000" />
-        </div>
-      </div>
-
-      <div id="flashSection">
-        <h3>Flash / FS geometry</h3>
-        <div class="row">
-          <div>
-            <label for="blockSize">Block size</label>
-            <input id="blockSize" type="number" value="4096" />
-          </div>
-          <div>
-            <label for="blockCount">Block count</label>
-            <input id="blockCount" type="number" value="256" />
-          </div>
-          <div>
-            <label for="readSize">Read size</label>
-            <input id="readSize" type="number" value="16" />
-          </div>
-          <div>
-            <label for="progSize">Prog size</label>
-            <input id="progSize" type="number" value="16" />
-          </div>
-          <div>
-            <label for="cacheSize">Cache size</label>
-            <input id="cacheSize" type="number" value="64" />
-          </div>
-          <div>
-            <label for="lookaheadSize">Lookahead size</label>
-            <input id="lookaheadSize" type="number" value="16" />
-          </div>
-          <div>
-            <label for="blockCycles">Block cycles</label>
-            <input id="blockCycles" type="number" value="512" />
-          </div>
-        </div>
-      </div>
-
-      <h3>Endurance</h3>
-      <div class="row">
-        <div>
-          <label for="peCycles">P/E cycles</label>
-          <input id="peCycles" type="number" value="100000" />
-        </div>
-        <div>
-          <label for="temperature">Temperature (°C)</label>
-          <input id="temperature" type="number" value="25" />
-        </div>
-      </div>
-
-      <div class="actions">
-        <button id="generateBtn">Generate workload</button>
-        <button id="downloadBtn" class="secondary">Download YAML</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <h3>Generated workload</h3>
-      <pre id="yamlOut"></pre>
-      <h3>Run it</h3>
-      <pre id="commandOut"></pre>
-      <p class="note">This is a static configurator. The actual measurement runs in the fs-wearbench CLI.</p>
-    </div>
-  </main>
-
-  <script>
-    const backend = document.getElementById('backend');
-    const flashSection = document.getElementById('flashSection');
-    const generateBtn = document.getElementById('generateBtn');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const yamlOut = document.getElementById('yamlOut');
-    const commandOut = document.getElementById('commandOut');
-
-    function updateVisibility() {
-      const b = backend.value;
-      flashSection.style.display = (b === 'littlefs_host' || b === 'zephyr_littlefs') ? 'block' : 'none';
-    }
-
-    function val(id) { return document.getElementById(id).value; }
-
-    function generateYaml() {
-      const b = backend.value;
-      const usesFlash = b === 'littlefs_host' || b === 'zephyr_littlefs';
-      const workload = {
-        name: val('workloadName'),
-        record_size: Number(val('recordSize')),
-        record_count: Number(val('recordCount')),
-        record_interval_ms: Number(val('recordInterval'))
-      };
-      const endurance = {
-        p_e_cycles: Number(val('peCycles')),
-        temperature_c: Number(val('temperature'))
-      };
-      const flash = usesFlash ? {
-        block_size: Number(val('blockSize')),
-        block_count: Number(val('blockCount')),
-        read_size: Number(val('readSize')),
-        prog_size: Number(val('progSize')),
-        cache_size: Number(val('cacheSize')),
-        lookahead_size: Number(val('lookaheadSize')),
-        block_cycles: Number(val('blockCycles'))
-      } : undefined;
-
-      const obj = { backend: b };
-      if (flash) obj.flash = flash;
-      obj.workload = workload;
-      obj.endurance = endurance;
-
-      return { obj, yaml: toYaml(obj), filename: `workload_${b}.yaml` };
-    }
-
-    function toYaml(obj, indent = 0) {
-      const prefix = '  '.repeat(indent);
-      let s = '';
-      for (const [k, v] of Object.entries(obj)) {
-        if (v === undefined) continue;
-        if (v && typeof v === 'object' && !Array.isArray(v)) {
-          s += `${prefix}${k}:\n`;
-          s += toYaml(v, indent + 1);
-        } else {
-          s += `${prefix}${k}: ${v}\n`;
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>fs-wearbench web configurator</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --fg: #c9d1d9;
+            --muted: #8b949e;
+            --accent: #58a6ff;
+            --border: #30363d;
+            --card: #161b22;
         }
-      }
-      return s;
-    }
 
-    function render() {
-      const { yaml, filename } = generateYaml();
-      yamlOut.textContent = yaml;
-      commandOut.textContent = `fs-wearbench run ${filename} -o report.json\nfs-wearbench show-report report.json`;
-    }
+        * {
+            box-sizing: border-box;
+        }
 
-    backend.addEventListener('change', updateVisibility);
-    generateBtn.addEventListener('click', render);
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            line-height: 1.5;
+            margin: 0;
+            padding: 2rem 1rem;
+        }
 
-    downloadBtn.addEventListener('click', () => {
-      const { yaml, filename } = generateYaml();
-      const blob = new Blob([yaml], { type: 'text/yaml' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(a.href);
-    });
+        main {
+            max-width: 720px;
+            margin: 0 auto;
+        }
 
-    updateVisibility();
-    render();
-  </script>
+        h1 {
+            margin-top: 0;
+        }
+
+        p.muted {
+            color: var(--muted);
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin: 0.75rem 0 0.25rem;
+            font-weight: 500;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg);
+            color: var(--fg);
+            font: inherit;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .row>div {
+            min-width: 0;
+        }
+
+        button {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 0.6rem 1.2rem;
+            font: inherit;
+            cursor: pointer;
+            margin-right: 0.5rem;
+        }
+
+        button.secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--fg);
+        }
+
+        .actions {
+            margin-top: 1rem;
+        }
+
+        pre {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 1rem;
+            overflow-x: auto;
+        }
+
+        .note {
+            color: var(--muted);
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+
+<body>
+    <main>
+        <h1>fs-wearbench web configurator</h1>
+        <p class="muted">Build a workload, then run it locally with the fs-wearbench CLI.</p>
+
+        <div class="card">
+            <label for="backend">Backend</label>
+            <select id="backend">
+                <option value="littlefs_host" selected>littlefs_host</option>
+                <option value="nvs">nvs</option>
+                <option value="zms">zms</option>
+                <option value="zephyr_littlefs">zephyr_littlefs</option>
+            </select>
+
+            <label for="workloadName">Workload name</label>
+            <input id="workloadName" type="text" value="128-byte sensor record every 10 seconds" />
+
+            <div class="row">
+                <div>
+                    <label for="recordSize">Record size (bytes)</label>
+                    <input id="recordSize" type="number" value="128" />
+                </div>
+                <div>
+                    <label for="recordCount">Record count</label>
+                    <input id="recordCount" type="number" value="1000" />
+                </div>
+                <div>
+                    <label for="recordInterval">Interval (ms)</label>
+                    <input id="recordInterval" type="number" value="10000" />
+                </div>
+            </div>
+
+            <div id="flashSection">
+                <h3>Flash / FS geometry</h3>
+                <div class="row">
+                    <div>
+                        <label for="blockSize">Block size</label>
+                        <input id="blockSize" type="number" value="4096" />
+                    </div>
+                    <div>
+                        <label for="blockCount">Block count</label>
+                        <input id="blockCount" type="number" value="256" />
+                    </div>
+                    <div>
+                        <label for="readSize">Read size</label>
+                        <input id="readSize" type="number" value="16" />
+                    </div>
+                    <div>
+                        <label for="progSize">Prog size</label>
+                        <input id="progSize" type="number" value="16" />
+                    </div>
+                    <div>
+                        <label for="cacheSize">Cache size</label>
+                        <input id="cacheSize" type="number" value="64" />
+                    </div>
+                    <div>
+                        <label for="lookaheadSize">Lookahead size</label>
+                        <input id="lookaheadSize" type="number" value="16" />
+                    </div>
+                    <div>
+                        <label for="blockCycles">Block cycles</label>
+                        <input id="blockCycles" type="number" value="512" />
+                    </div>
+                </div>
+            </div>
+
+            <h3>Endurance</h3>
+            <div class="row">
+                <div>
+                    <label for="peCycles">P/E cycles</label>
+                    <input id="peCycles" type="number" value="100000" />
+                </div>
+                <div>
+                    <label for="temperature">Temperature (°C)</label>
+                    <input id="temperature" type="number" value="25" />
+                </div>
+            </div>
+
+            <div class="actions">
+                <button id="generateBtn">Generate workload</button>
+                <button id="downloadBtn" class="secondary">Download YAML</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Generated workload</h3>
+            <pre id="yamlOut"></pre>
+            <h3>Run it</h3>
+            <pre id="commandOut"></pre>
+            <p id="timeOut" class="note"></p>
+            <p class="note">This is a static configurator. The actual measurement runs in the fs-wearbench CLI.</p>
+        </div>
+    </main>
+
+    <script>
+        const backend = document.getElementById('backend');
+        const flashSection = document.getElementById('flashSection');
+        const generateBtn = document.getElementById('generateBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const yamlOut = document.getElementById('yamlOut');
+        const commandOut = document.getElementById('commandOut');
+        const timeOut = document.getElementById('timeOut');
+
+        function updateVisibility() {
+            const b = backend.value;
+            flashSection.style.display = (b === 'littlefs_host' || b === 'zephyr_littlefs') ? 'block' : 'none';
+        }
+
+        function val(id) { return document.getElementById(id).value; }
+
+        function generateYaml() {
+            const b = backend.value;
+            const usesFlash = b === 'littlefs_host' || b === 'zephyr_littlefs';
+            const workload = {
+                name: val('workloadName'),
+                record_size: Number(val('recordSize')),
+                record_count: Number(val('recordCount')),
+                record_interval_ms: Number(val('recordInterval'))
+            };
+            const endurance = {
+                p_e_cycles: Number(val('peCycles')),
+                temperature_c: Number(val('temperature'))
+            };
+            const flash = usesFlash ? {
+                block_size: Number(val('blockSize')),
+                block_count: Number(val('blockCount')),
+                read_size: Number(val('readSize')),
+                prog_size: Number(val('progSize')),
+                cache_size: Number(val('cacheSize')),
+                lookahead_size: Number(val('lookaheadSize')),
+                block_cycles: Number(val('blockCycles'))
+            } : undefined;
+
+            const obj = { backend: b };
+            if (flash) obj.flash = flash;
+            obj.workload = workload;
+            obj.endurance = endurance;
+
+            return { obj, yaml: toYaml(obj), filename: `workload_${b}.yaml` };
+        }
+
+        function toYaml(obj, indent = 0) {
+            const prefix = '  '.repeat(indent);
+            let s = '';
+            for (const [k, v] of Object.entries(obj)) {
+                if (v === undefined) continue;
+                if (v && typeof v === 'object' && !Array.isArray(v)) {
+                    s += `${prefix}${k}:\n`;
+                    s += toYaml(v, indent + 1);
+                } else {
+                    s += `${prefix}${k}: ${v}\n`;
+                }
+            }
+            return s;
+        }
+
+        function estimateTime() {
+            const b = backend.value;
+            const count = Number(val('recordCount')) || 0;
+            let build = 1;
+            let run = 0.1;
+            if (b === 'littlefs_host') {
+                build = 1;               // make is very fast
+                run = Math.max(0.05, count * 0.0001); // ~0.1 ms per record
+            } else {
+                build = 20;              // west build ~20 s first time
+                run = Math.max(0.5, count * 0.001);   // ~1 ms per record
+            }
+            const total = Math.round(build + run);
+            return `Estimated build + run: ~${total} s (build ~${Math.round(build)} s, run ~${Math.round(run)} s)`;
+        }
+
+        function render() {
+            const { yaml, filename } = generateYaml();
+            yamlOut.textContent = yaml;
+            commandOut.textContent = `fs-wearbench run ${filename} -o report.json\nfs-wearbench show-report report.json`;
+            timeOut.textContent = estimateTime();
+        }
+
+        backend.addEventListener('change', updateVisibility);
+        generateBtn.addEventListener('click', render);
+        document.querySelectorAll('input, select').forEach(el => {
+            el.addEventListener('input', render);
+            el.addEventListener('change', render);
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            const { yaml, filename } = generateYaml();
+            const blob = new Blob([yaml], { type: 'text/yaml' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        });
+
+        updateVisibility();
+        render();
+    </script>
 </body>
+
 </html>
