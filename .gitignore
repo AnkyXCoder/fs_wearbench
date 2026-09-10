@@ -17,3 +17,4 @@ backends/littlefs_host/wear_littlefs
 # Zephyr build directories
 backends/zephyr_native/build_*
 backends/zephyr_native/build
+*.json
