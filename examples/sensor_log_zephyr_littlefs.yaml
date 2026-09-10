@@ -1,0 +1,9 @@
+backend: zephyr_littlefs
+workload:
+  name: "128-byte LittleFS log record every 10 seconds"
+  record_size: 128
+  record_count: 1000
+  record_interval_ms: 10000
+endurance:
+  p_e_cycles: 100000
+  temperature_c: 25

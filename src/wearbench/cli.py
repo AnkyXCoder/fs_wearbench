@@ -69,14 +69,14 @@ def _zephyr_app_dir() -> Path:
     return Path(__file__).resolve().parents[2] / "backends" / "zephyr_native"
 
 
-def _build_zephyr_nvs(workload: dict) -> tuple[Path, Path]:
+def _build_zephyr(workload: dict, backend: str) -> Path:
     app_dir = _zephyr_app_dir()
     w = workload["workload"]
-    build_dir = app_dir / "build_nvs"
+    build_dir = app_dir / f"build_{backend}"
     record_size = w["record_size"]
     record_count = w["record_count"]
 
-    click.echo(f"Building Zephyr NVS runner in {build_dir} ...")
+    click.echo(f"Building Zephyr {backend.upper()} runner in {build_dir} ...")
     build_cmd = [
         str(_WEST),
         "build",
@@ -90,7 +90,7 @@ def _build_zephyr_nvs(workload: dict) -> tuple[Path, Path]:
         "--",
         f"-DWEAR_RECORD_SIZE={record_size}",
         f"-DWEAR_RECORD_COUNT={record_count}",
-        "-DWEAR_BACKEND=NVS",
+        f"-DWEAR_BACKEND={backend.upper()}",
     ]
     result = subprocess.run(
         build_cmd,
@@ -101,15 +101,15 @@ def _build_zephyr_nvs(workload: dict) -> tuple[Path, Path]:
     )
     if result.returncode != 0:
         click.echo(result.stdout, err=True)
-        raise RuntimeError("west build for nvs failed")
+        raise RuntimeError(f"west build for {backend} failed")
     exe = build_dir / "zephyr" / "zephyr.exe"
     if not exe.exists():
         raise RuntimeError(f"No binary at {exe}")
-    return exe, build_dir
+    return exe
 
 
-def _run_zephyr_nvs(workload: dict) -> dict:
-    exe, build_dir = _build_zephyr_nvs(workload)
+def _run_zephyr(workload: dict, backend: str) -> dict:
+    exe = _build_zephyr(workload, backend)
     click.echo(f"Running {exe} ...")
     result = subprocess.run(
         [str(exe), "--flash_in_ram"],
@@ -147,8 +147,8 @@ def run(workload: Path, output: Path | None) -> None:
     if backend == "littlefs_host":
         exe = _build_littlefs_host()
         report = _run_littlefs_host(doc, exe)
-    elif backend == "nvs":
-        report = _run_zephyr_nvs(doc)
+    elif backend in ("nvs", "zms", "zephyr_littlefs"):
+        report = _run_zephyr(doc, backend)
     else:
         raise click.ClickException(f"Unsupported backend: {backend!r}")
 
